@@ -28,7 +28,7 @@ package DB is
    DB_Error : exception;
    --  Raised for all errors reported by the database
 
-   type Handle is abstract tagged private;
+   type Handle is interface;
 
    --  Open / Close
 
@@ -55,7 +55,7 @@ package DB is
 
    --  Statement
 
-   type Iterator is abstract tagged private;
+   type Iterator is interface;
 
    package String_Vectors is new Containers.Indefinite_Vectors
      (Index_Type => Positive, Element_Type => String);
@@ -82,11 +82,5 @@ package DB is
 
    function Last_Insert_Rowid (DB : in Handle) return String is abstract;
    --  Returns the Id of the last inserted row id
-
-private
-
-   type Handle is abstract tagged null record;
-
-   type Iterator is abstract tagged null record;
 
 end DB;
