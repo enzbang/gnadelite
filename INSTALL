@@ -1,0 +1,26 @@
+
+This is a minimal GNADE version with only the Sqlite3 binding plus an
+abstraction to be able to support later other databases.
+
+Dependencies
+------------
+
+   * Morzhol (git submodules)
+     Some simple helper routines.
+
+Building
+--------
+
+Building Morzhol
+
+   $ git submodule init
+   $ git submodule update
+
+   $ cd external-libs/morzhol
+   $ make
+   $ sudo make install
+
+Building gnadelite
+
+   $ make
+   $ sudo make install
