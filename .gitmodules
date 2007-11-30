@@ -1,0 +1,3 @@
+[submodule "external-libs/morzhol"]
+	url = http://repo.or.cz/r/morzhol.git
+	path = external-libs/morzhol
