@@ -34,6 +34,10 @@ endif
 all: build
 
 build:
+ifneq ($(INSTALL), "")
+# Write INSTALL target into mk.install (see install target)
+	$(shell echo $(INSTALL) > mk.install)
+endif
 	$(GNATMAKE) -Pgnadelite
 
 clean:
@@ -46,12 +50,8 @@ I_LIB	   = $(INSTALL)/lib/gnadelite
 I_GPR	   = $(INSTALL)/lib/gnat
 
 install_clean:
-ifeq ("$(INSTALL)", "..")
-	$(error "Wrong install path : INSTALL='$(INSTALL)'")
-else
 ifeq ("$(INSTALL)", "")
 	$(error "Wrong install path : empty INSTALL var")
-endif
 endif
 	$(RM) -fr $(I_INC)
 	$(RM) -fr $(I_LIB)
@@ -63,6 +63,14 @@ install_dirs: install_clean
 	$(MKDIR) $(I_INC_G)
 	$(MKDIR) $(I_LIB)
 	$(MKDIR) $(I_GPR)
+
+ifeq ("$(INSTALL)", "..")
+# IF GNAT_ROOT is empty and INSTALL var is not set by the user,
+# the INSTALL var is equal to ".."
+# In this case, read INSTALL from mk.install. This file is created
+# before building
+install: INSTALL = $(shell cat mk.install)
+endif
 
 install: install_dirs
 	$(CP) src/*.ad[sb] $(I_INC)
