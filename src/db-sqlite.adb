@@ -164,8 +164,11 @@ package body DB.SQLite is
    -----------------------
 
    overriding function Last_Insert_Rowid (DB : in Handle) return String is
+     Rowid : constant String :=
+                 SQLite3.uint64'Image (SQLite3.Last_Insert_Rowid (DB.H));
    begin
-      return SQLite3.uint64'Image (SQLite3.Last_Insert_Rowid (DB.H));
+      --  Skip first whitespace returned by 'Image
+      return Rowid (Rowid'First + 1 .. Rowid'Last);
    end Last_Insert_Rowid;
 
    ----------
