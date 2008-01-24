@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --                                GnadeLite                                 --
 --                                                                          --
---                         Copyright (C) 2006-2007                          --
+--                         Copyright (C) 2006-2008                          --
 --                      Pascal Obry - Olivier Ramonat                       --
 --                                                                          --
 --  This library is free software; you can redistribute it and/or modify    --
@@ -39,7 +39,7 @@ project GnadeLite is
    -- Compiler --
    --------------
 
-   Common_Options  := ("-Wall", "-fno-strict-aliasing");
+   Common_Options  := ("-Wall", "-fno-strict-aliasing", "-gnat05");
    --  Common options used for the Debug and Release modes
 
    Debug_Options   :=
