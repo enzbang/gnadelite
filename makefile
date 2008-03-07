@@ -25,10 +25,12 @@ include mk.config
 
 B_DIR=".build/$(shell echo $(MODE) | tr [[:upper:]] [[:lower:]])"
 
+APP := $(ADA_PROJECT_PATH)
+
 ifeq ($(OS),Windows_NT)
-export ADA_PROJECT_PATH=$PWD/external-libs/morzhol\;$ADA_PROJECT_PATH
+export ADA_PROJECT_PATH=$PWD/external-libs/morzhol\;${APP}
 else
-export ADA_PROJECT_PATH=$PWD/external-libs/morzhol:$ADA_PROJECT_PATH
+export ADA_PROJECT_PATH=$PWD/external-libs/morzhol:${APP}
 endif
 
 all: build
