@@ -42,6 +42,24 @@ package body DB.SQLite is
    procedure Step_Internal (Iter : in out Iterator);
    --  Advance to the next row and set Iter.More
 
+   protected SQLite_Safe is
+      procedure Close
+        (DB : in Handle; Result : out Sqlite3.Return_Value);
+
+      procedure Exec
+        (DB : in Handle; SQL : in String; Result : out Sqlite3.Return_Value);
+      --  Execute an SQL statement
+
+      procedure Open
+        (DB : in Handle; Name : in String; Result : out Sqlite3.Return_Value);
+      --  Open an SQL statement
+
+      procedure Prepare_Select
+        (DB   : in     Handle;
+         Iter : in out Standard.DB.Iterator'Class;
+         SQL  : in     String);
+   end SQLite_Safe;
+
    -----------------------
    -- Begin_Transaction --
    -----------------------
@@ -80,9 +98,11 @@ package body DB.SQLite is
    -----------
 
    overriding procedure Close (DB : in out Handle) is
+     Result : Sqlite3.Return_Value;
    begin
       Logs.Write (Module, "close");
-      Check_Result ("close", SQLite3.Close (DB.H));
+      SQLite_Safe.Close (DB, Result);
+      Check_Result ("close", Result);
       Unchecked_Free (DB.H);
    end Close;
 
@@ -108,13 +128,16 @@ package body DB.SQLite is
    is
       pragma Unreferenced (User, Password);
       use type GNU.DB.SQLite3.Handle;
+
+      Result : Sqlite3.Return_Value;
    begin
       Logs.Write
         (Module, "connect " & Logs.NV ("Name", Name));
       if DB.H = null then
          DB.H := new GNU.DB.SQLite3.Object;
       end if;
-      Check_Result ("connect", SQLite3.Open (DB.H, Name));
+      SQLite_Safe.Open (DB, Name, Result);
+      Check_Result ("connect", Result);
    end Connect;
 
    ----------------
@@ -132,10 +155,12 @@ package body DB.SQLite is
    -------------
 
    overriding procedure Execute (DB : in Handle; SQL : in String) is
+     Result : SQLite3.Return_Value;
    begin
       Logs.Write
         (Module, "execute : " & Logs.NV ("SQL", SQL));
-      Check_Result ("execute", SQLite3.Exec (DB.H, SQL));
+      SQLite_Safe.Exec (DB, SQL, Result);
+      Check_Result ("execute", Result);
    exception
       when DB_Error =>
          raise DB_Error with "DB_Error on Execute " & SQL;
@@ -191,21 +216,7 @@ package body DB.SQLite is
    is
       use type SQLite3.Statement_Reference;
    begin
-      pragma Assert (Iter in Iterator);
-      Logs.Write
-        (Module, "prepare select : " & Logs.NV ("SQL", SQL));
-
-      Iterator (Iter).H := DB;
-      Iterator (Iter).More := False;
-
-      Check_Result
-        ("prepare_select",
-         SQLite3.prepare (DB.H, SQL, Iterator (Iter).S'Unchecked_Access));
-
-      Iterator (Iter).Col :=
-        SQLite3.column_count (Iterator (Iter).S'Unchecked_Access);
-
-      Step_Internal (Iterator (Iter));
+      SQLite_Safe.Prepare_Select (DB, Iter, SQL);
    end Prepare_Select;
 
    --------------
@@ -217,6 +228,50 @@ package body DB.SQLite is
       Logs.Write (Module, "rollback");
       Execute (DB, "rollback");
    end Rollback;
+
+   protected body SQLite_Safe is
+      procedure Close
+        (DB : in Handle; Result : out Sqlite3.Return_Value) is
+      begin
+         Result := SQLite3.Close (DB.H);
+      end Close;
+
+      procedure Exec
+        (DB : in Handle; SQL : in String; Result : out Sqlite3.Return_Value) is
+      begin
+         Result := SQLite3.Exec (DB.H, SQL);
+      end Exec;
+
+      procedure Open
+        (DB : in Handle; Name : in String; Result : out Sqlite3.Return_Value) is
+      begin
+         Result := SQLite3.Open (DB.H, Name);
+      end Open;
+
+      procedure Prepare_Select
+        (DB   : in     Handle;
+         Iter : in out Standard.DB.Iterator'Class;
+         SQL  : in     String)
+      is
+         use type SQLite3.Statement_Reference;
+      begin
+         pragma Assert (Iter in Iterator);
+         Logs.Write
+           (Module, "prepare select : " & Logs.NV ("SQL", SQL));
+
+         Iterator (Iter).H := DB;
+         Iterator (Iter).More := False;
+
+         Check_Result
+           ("prepare_select",
+            SQLite3.prepare (DB.H, SQL, Iterator (Iter).S'Unchecked_Access));
+
+         Iterator (Iter).Col :=
+           SQLite3.column_count (Iterator (Iter).S'Unchecked_Access);
+
+         Step_Internal (Iterator (Iter));
+      end Prepare_Select;
+   end SQLite_Safe;
 
    -------------------
    -- Step_Internal --
