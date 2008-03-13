@@ -13,6 +13,8 @@ procedure T1 is
    use Ada;
    use Ada.Exceptions;
 
+   Max_Insert : constant Positive := 10000;
+
    task type Inserts is
       entry Start (Id : in Positive);
    end Inserts;
@@ -59,8 +61,6 @@ procedure T1 is
 
    task body Inserts is
       DBH : constant TLS_DBH_Access := TLS_DBH_Access (DBH_TLS.Reference);
-
-      Max_Insert : constant Positive := 10000;
       Task_Id    : Positive;
       Current    : Positive := 1;
    begin
@@ -80,8 +80,6 @@ procedure T1 is
       end Start;
 
       loop
-         exit when Current = Max_Insert;
-
          declare
             SQL : constant String := "insert into test (counter, tid) values ("
               & Positive'Image (Current) & ", "
@@ -89,8 +87,9 @@ procedure T1 is
          begin
             DBH.Handle.Execute (SQL);
          end;
-         Current := Current + 1;
 
+         exit when Current = Max_Insert;
+         Current := Current + 1;
       end loop;
    exception
       when E : others => Text_IO.Put_Line (Exception_Information (E));
@@ -120,7 +119,7 @@ procedure T1 is
             if Iter.More then
                Iter.Get_Line (Line);
                if Positive'Value
-                 (DB.String_Vectors.Element (Line, 1)) = 9999 then
+                 (DB.String_Vectors.Element (Line, 1)) = Max_Insert then
                   Text_IO.Put_Line ("Reader "
                                     & Positive'Image (Task_Id)
                                     & " Stop successfully");
