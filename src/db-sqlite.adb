@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
---                                 GnadeLite                                --
+--                                GnadeLite                                 --
 --                                                                          --
---                         Copyright (C) 2006-2007                          --
+--                         Copyright (C) 2006-2008                          --
 --                      Pascal Obry - Olivier Ramonat                       --
 --                                                                          --
 --  This library is free software; you can redistribute it and/or modify    --
@@ -48,6 +48,7 @@ package body DB.SQLite is
    protected SQLite_Safe is
       procedure Close
         (DB : in Handle; Result : out Sqlite3.Return_Value);
+      --  Close the database
 
       procedure Exec
         (DB : in Handle; SQL : in String; Result : out Sqlite3.Return_Value);
@@ -55,12 +56,13 @@ package body DB.SQLite is
 
       procedure Open
         (DB : in Handle; Name : in String; Result : out Sqlite3.Return_Value);
-      --  Open an SQL statement
+      --  Open the database
 
       procedure Prepare_Select
         (DB   : in     Handle;
          Iter : in out Standard.DB.Iterator'Class;
          SQL  : in     String);
+      --  Prepare a select statement
    end SQLite_Safe;
 
    -----------------------
@@ -249,12 +251,25 @@ package body DB.SQLite is
       Execute (DB, "rollback");
    end Rollback;
 
+   -----------------
+   -- SQLite_Safe --
+   -----------------
+
    protected body SQLite_Safe is
+
+      -----------
+      -- Close --
+      -----------
+
       procedure Close
         (DB : in Handle; Result : out Sqlite3.Return_Value) is
       begin
          Result := SQLite3.Close (DB.H);
       end Close;
+
+      ----------
+      -- Exec --
+      ----------
 
       procedure Exec
         (DB : in Handle; SQL : in String; Result : out Sqlite3.Return_Value) is
@@ -262,11 +277,19 @@ package body DB.SQLite is
          Result := SQLite3.Exec (DB.H, SQL);
       end Exec;
 
+      ----------
+      -- Open --
+      ----------
+
       procedure Open
         (DB : in Handle; Name : in String; Result : out Sqlite3.Return_Value) is
       begin
          Result := SQLite3.Open (DB.H, Name);
       end Open;
+
+      --------------------
+      -- Prepare_Select --
+      --------------------
 
       procedure Prepare_Select
         (DB   : in     Handle;
