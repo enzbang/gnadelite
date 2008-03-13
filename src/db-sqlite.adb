@@ -30,6 +30,9 @@ package body DB.SQLite is
 
    Module : constant Logs.Module_Name := "DB_SQLITE";
 
+   Unique_Handle : SQLite3.Handle := null;
+   --  Unique handle to use when we want to use in memory connection
+
    procedure Unchecked_Free is new Unchecked_Deallocation
      (Object => SQLite3.Object, Name => SQLite3.Handle);
 
@@ -133,11 +136,28 @@ package body DB.SQLite is
    begin
       Logs.Write
         (Module, "connect " & Logs.NV ("Name", Name));
-      if DB.H = null then
-         DB.H := new GNU.DB.SQLite3.Object;
+      if Name = In_Memory_Database then
+         if Unique_Handle = null then
+
+            --  Open only one database connection !
+
+            Unique_Handle := new GNU.DB.SQLite3.Object;
+            DB.H := Unique_Handle;
+            SQLite_Safe.Open (DB, Name, Result);
+            Check_Result ("connect", Result);
+
+         elsif DB.H = null then
+            --  Get the open database connection
+            DB.H := Unique_Handle;
+         end if;
+      else
+         if DB.H = null then
+            DB.H := new GNU.DB.SQLite3.Object;
+         end if;
+
+         SQLite_Safe.Open (DB, Name, Result);
+         Check_Result ("connect", Result);
       end if;
-      SQLite_Safe.Open (DB, Name, Result);
-      Check_Result ("connect", Result);
    end Connect;
 
    ----------------

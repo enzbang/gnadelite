@@ -27,7 +27,10 @@ package DB.SQLite is
 
    type Handle is new DB.Handle with private;
 
-   --  Open / Close
+   In_Memory_Database : constant String := ":memory:";
+   --  When the database name is ":memory:", a private in-memory
+   --  database is created for the connection.  This in-memory
+   --  database will vanish when the database connection is closed.
 
    overriding procedure Connect
      (DB       : in out Handle;
