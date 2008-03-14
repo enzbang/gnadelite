@@ -43,7 +43,7 @@ project GnadeLite is
    --  Common options used for the Debug and Release modes
 
    Debug_Options   :=
-     ("-g", "-gnata", "-gnatVa", "-gnatQ", "-gnato");
+     ("-g", "-gnata", "-gnatVa", "-gnatQ", "-gnato", "-gnaty");
 
    Release_Options :=
      ("-O2");
@@ -57,6 +57,8 @@ project GnadeLite is
          when "Release" =>
             for Default_Switches ("Ada") use Common_Options & Release_Options;
       end case;
+
+      for Switches ("gnu-db-sqlite3.adb") use ("-gnatyN");
 
    end Compiler;
 

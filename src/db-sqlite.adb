@@ -50,15 +50,15 @@ package body DB.SQLite is
    protected SQLite_Safe is
 
       procedure Close
-        (DB : in Handle; Result : out Sqlite3.Return_Value);
+        (DB : in Handle; Result : out SQLite3.Return_Value);
       --  Close the database
 
       procedure Exec
-        (DB : in Handle; SQL : in String; Result : out Sqlite3.Return_Value);
+        (DB : in Handle; SQL : in String; Result : out SQLite3.Return_Value);
       --  Execute an SQL statement
 
       procedure Open
-        (DB : in Handle; Name : in String; Result : out Sqlite3.Return_Value);
+        (DB : in Handle; Name : in String; Result : out SQLite3.Return_Value);
       --  Open the database
 
       function Prepare_Select
@@ -107,7 +107,7 @@ package body DB.SQLite is
    -----------
 
    overriding procedure Close (DB : in out Handle) is
-     Result : Sqlite3.Return_Value;
+      Result : SQLite3.Return_Value;
    begin
       Logs.Write (Module, "close");
       SQLite_Safe.Close (DB, Result);
@@ -138,7 +138,7 @@ package body DB.SQLite is
       pragma Unreferenced (User, Password);
       use type GNU.DB.SQLite3.Handle;
 
-      Result : Sqlite3.Return_Value;
+      Result : SQLite3.Return_Value;
    begin
       Logs.Write (Module, "connect " & Logs.NV ("Name", Name));
 
@@ -181,7 +181,7 @@ package body DB.SQLite is
    -------------
 
    overriding procedure Execute (DB : in Handle; SQL : in String) is
-     Result : SQLite3.Return_Value;
+      Result : SQLite3.Return_Value;
    begin
       Logs.Write (Module, "execute : " & Logs.NV ("SQL", SQL));
       SQLite_Safe.Exec (DB, SQL, Result);
@@ -214,8 +214,8 @@ package body DB.SQLite is
    -----------------------
 
    overriding function Last_Insert_Rowid (DB : in Handle) return String is
-     Rowid : constant String :=
-                 SQLite3.uint64'Image (SQLite3.Last_Insert_Rowid (DB.H));
+      Rowid : constant String :=
+                SQLite3.uint64'Image (SQLite3.Last_Insert_Rowid (DB.H));
    begin
       --  Skip first whitespace returned by 'Image
       return Rowid (Rowid'First + 1 .. Rowid'Last);
@@ -265,7 +265,7 @@ package body DB.SQLite is
       -----------
 
       procedure Close
-        (DB : in Handle; Result : out Sqlite3.Return_Value) is
+        (DB : in Handle; Result : out SQLite3.Return_Value) is
       begin
          Result := SQLite3.Close (DB.H);
       end Close;
@@ -275,7 +275,7 @@ package body DB.SQLite is
       ----------
 
       procedure Exec
-        (DB : in Handle; SQL : in String; Result : out Sqlite3.Return_Value) is
+        (DB : in Handle; SQL : in String; Result : out SQLite3.Return_Value) is
       begin
          Result := SQLite3.Exec (DB.H, SQL);
       end Exec;
@@ -285,7 +285,9 @@ package body DB.SQLite is
       ----------
 
       procedure Open
-        (DB : in Handle; Name : in String; Result : out Sqlite3.Return_Value) is
+        (DB     : in Handle;
+         Name   : in String;
+         Result : out SQLite3.Return_Value) is
       begin
          Result := SQLite3.Open (DB.H, Name);
       end Open;
@@ -311,7 +313,8 @@ package body DB.SQLite is
 
          Check_Result
            ("prepare_select",
-            SQLite3.prepare (DB.H, SQL, Iterator (Select_Iter).S'Unchecked_Access));
+            SQLite3.prepare
+              (DB.H, SQL, Iterator (Select_Iter).S'Unchecked_Access));
 
          Iterator (Select_Iter).Col :=
            SQLite3.column_count (Iterator (Select_Iter).S'Unchecked_Access);
