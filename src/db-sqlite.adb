@@ -61,11 +61,12 @@ package body DB.SQLite is
         (DB : in Handle; Name : in String; Result : out Sqlite3.Return_Value);
       --  Open the database
 
-      procedure Prepare_Select
-        (DB   : in     Handle;
-         Iter : in out Standard.DB.Iterator'Class;
-         SQL  : in     String);
+      function Prepare_Select
+        (DB   : in Handle;
+         Iter : in Standard.DB.Iterator'Class;
+         SQL  : in String) return Standard.DB.Iterator'Class;
       --  Prepare a select statement
+
    end SQLite_Safe;
 
    -----------------------
@@ -240,7 +241,7 @@ package body DB.SQLite is
    is
       use type SQLite3.Statement_Reference;
    begin
-      SQLite_Safe.Prepare_Select (DB, Iter, SQL);
+      Iter := SQLite_Safe.Prepare_Select (DB, Iter, SQL);
    end Prepare_Select;
 
    --------------
@@ -293,28 +294,30 @@ package body DB.SQLite is
       -- Prepare_Select --
       --------------------
 
-      procedure Prepare_Select
-        (DB   : in     Handle;
-         Iter : in out Standard.DB.Iterator'Class;
-         SQL  : in     String)
+      function Prepare_Select
+        (DB   : in Handle;
+         Iter : in Standard.DB.Iterator'Class;
+         SQL  : in String) return Standard.DB.Iterator'Class
       is
          use type SQLite3.Statement_Reference;
+         Select_Iter : Standard.DB.Iterator'Class := Iter;
       begin
-         pragma Assert (Iter in Iterator);
+         pragma Assert (Select_Iter in Iterator);
          Logs.Write
            (Module, "prepare select : " & Logs.NV ("SQL", SQL));
 
-         Iterator (Iter).H := DB;
-         Iterator (Iter).More := False;
+         Iterator (Select_Iter).H := DB;
+         Iterator (Select_Iter).More := False;
 
          Check_Result
            ("prepare_select",
-            SQLite3.prepare (DB.H, SQL, Iterator (Iter).S'Unchecked_Access));
+            SQLite3.prepare (DB.H, SQL, Iterator (Select_Iter).S'Unchecked_Access));
 
-         Iterator (Iter).Col :=
-           SQLite3.column_count (Iterator (Iter).S'Unchecked_Access);
+         Iterator (Select_Iter).Col :=
+           SQLite3.column_count (Iterator (Select_Iter).S'Unchecked_Access);
 
-         Step_Internal (Iterator (Iter));
+         Step_Internal (Iterator (Select_Iter));
+         return Select_Iter;
       end Prepare_Select;
 
    end SQLite_Safe;
