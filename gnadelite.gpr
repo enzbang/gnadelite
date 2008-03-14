@@ -34,6 +34,7 @@ project GnadeLite is
    for Library_Dir use "lib";
    for Library_Name use "gnadelite";
    for Library_Kind use "dynamic";
+   for Library_Version use "libgnadelite.so.1.0";
 
    --------------
    -- Compiler --
