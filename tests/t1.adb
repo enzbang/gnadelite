@@ -1,3 +1,24 @@
+------------------------------------------------------------------------------
+--                                GnadeLite                                 --
+--                                                                          --
+--                            Copyright (C) 2008                            --
+--                      Pascal Obry - Olivier Ramonat                       --
+--                                                                          --
+--  This library is free software; you can redistribute it and/or modify    --
+--  it under the terms of the GNU General Public License as published by    --
+--  the Free Software Foundation; either version 2 of the License, or (at   --
+--  your option) any later version.                                         --
+--                                                                          --
+--  This library is distributed in the hope that it will be useful, but     --
+--  WITHOUT ANY WARRANTY; without even the implied warranty of              --
+--  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU       --
+--  General Public License for more details.                                --
+--                                                                          --
+--  You should have received a copy of the GNU General Public License       --
+--  along with this library; if not, write to the Free Software Foundation, --
+--  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.       --
+------------------------------------------------------------------------------
+
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Task_Attributes;
@@ -60,9 +81,9 @@ procedure T1 is
    -------------
 
    task body Inserts is
-      DBH : constant TLS_DBH_Access := TLS_DBH_Access (DBH_TLS.Reference);
-      Task_Id    : Positive;
-      Current    : Positive := 1;
+      DBH     : constant TLS_DBH_Access := TLS_DBH_Access (DBH_TLS.Reference);
+      Task_Id : Positive;
+      Current : Positive := 1;
    begin
       Connect (DBH);
 
@@ -71,8 +92,10 @@ procedure T1 is
 
          --  Insert a first element
          declare
-            SQL : constant String := "insert into test (counter, tid) values ("
-              & Positive'Image (Current) & ", " & Positive'Image (Task_Id) & ")";
+            SQL : constant String :=
+                    "insert into test (counter, tid) values ("
+                      & Positive'Image (Current) & ", "
+                      & Positive'Image (Task_Id) & ")";
          begin
             DBH.Handle.Execute (SQL);
          end;
@@ -81,9 +104,10 @@ procedure T1 is
 
       loop
          declare
-            SQL : constant String := "insert into test (counter, tid) values ("
-              & Positive'Image (Current) & ", "
-              & Positive'Image (Task_Id) & ")";
+            SQL : constant String :=
+                    "insert into test (counter, tid) values ("
+                      & Positive'Image (Current) & ", "
+                      & Positive'Image (Task_Id) & ")";
          begin
             DBH.Handle.Execute (SQL);
          end;
@@ -109,13 +133,15 @@ procedure T1 is
          Text_IO.Put_Line ("Reader " & Positive'Image (Task_Id) & " start");
          Connect (DBH);
       end Start;
+
       loop
          declare
-            Iter      : DB.SQLite.Iterator;
-            Line      : DB.String_Vectors.Vector;
+            Iter : DB.SQLite.Iterator;
+            Line : DB.String_Vectors.Vector;
          begin
             DBH.Handle.Prepare_Select
               (Iter, "select max(counter), tid from test");
+
             if Iter.More then
                Iter.Get_Line (Line);
                if Positive'Value

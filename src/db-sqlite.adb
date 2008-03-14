@@ -45,7 +45,10 @@ package body DB.SQLite is
    procedure Step_Internal (Iter : in out Iterator);
    --  Advance to the next row and set Iter.More
 
+   --  Thread safe access to the SQLite database
+
    protected SQLite_Safe is
+
       procedure Close
         (DB : in Handle; Result : out Sqlite3.Return_Value);
       --  Close the database
@@ -136,11 +139,10 @@ package body DB.SQLite is
 
       Result : Sqlite3.Return_Value;
    begin
-      Logs.Write
-        (Module, "connect " & Logs.NV ("Name", Name));
+      Logs.Write (Module, "connect " & Logs.NV ("Name", Name));
+
       if Name = In_Memory_Database then
          if Unique_Handle = null then
-
             --  Open only one database connection !
 
             Unique_Handle := new GNU.DB.SQLite3.Object;
@@ -152,6 +154,7 @@ package body DB.SQLite is
             --  Get the open database connection
             DB.H := Unique_Handle;
          end if;
+
       else
          if DB.H = null then
             DB.H := new GNU.DB.SQLite3.Object;
@@ -179,8 +182,7 @@ package body DB.SQLite is
    overriding procedure Execute (DB : in Handle; SQL : in String) is
      Result : SQLite3.Return_Value;
    begin
-      Logs.Write
-        (Module, "execute : " & Logs.NV ("SQL", SQL));
+      Logs.Write (Module, "execute : " & Logs.NV ("SQL", SQL));
       SQLite_Safe.Exec (DB, SQL, Result);
       Check_Result ("execute", Result);
    exception
@@ -314,6 +316,7 @@ package body DB.SQLite is
 
          Step_Internal (Iterator (Iter));
       end Prepare_Select;
+
    end SQLite_Safe;
 
    -------------------
@@ -328,8 +331,10 @@ package body DB.SQLite is
 
       if R = SQLite3.SQLITE_DONE then
          Iter.More := False;
+
       elsif R = SQLite3.SQLITE_ROW then
          Iter.More := True;
+
       else
          Check_Result ("step_internal", R);
          Iter.More := False;
