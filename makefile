@@ -34,6 +34,8 @@ endif
 
 all: build
 
+setup:
+
 build:
 ifneq ($(INSTALL), "")
 # Write INSTALL target into mk.install (see install target)
