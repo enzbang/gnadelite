@@ -116,7 +116,10 @@ procedure T1 is
          Current := Current + 1;
       end loop;
    exception
-      when E : others => Text_IO.Put_Line (Exception_Information (E));
+      when E : others =>
+         Text_IO.Put_Line
+           ("Inserts" & Positive'Image (Task_Id) & "; "
+            & Exception_Information (E));
    end Inserts;
 
    -------------
@@ -126,7 +129,7 @@ procedure T1 is
    task body Selects is
       DBH     : constant TLS_DBH_Access := TLS_DBH_Access (DBH_TLS.Reference);
       Task_Id : Positive;
-      Last    : Positive := 1;
+      Last    : Natural := 1;
    begin
       accept Start (Id : in Positive) do
          Task_Id := Id;
@@ -144,22 +147,29 @@ procedure T1 is
 
             if Iter.More then
                Iter.Get_Line (Line);
-               if Positive'Value
-                 (DB.String_Vectors.Element (Line, 1)) = Max_Insert then
-                  Text_IO.Put_Line ("Reader "
-                                    & Positive'Image (Task_Id)
-                                    & " Stop successfully");
-                  Line.Clear;
-                  Iter.End_Select;
-                  exit;
-               end if;
-               if Positive'Value
-                 (DB.String_Vectors.Element (Line, 1)) /= Last then
-                  Last := Positive'Value (DB.String_Vectors.Element (Line, 1));
-                  Text_IO.Put_Line
-                    ("Reader " & Positive'Image (Task_Id) & " see "
-                     & DB.String_Vectors.Element (Line, 1) & " write by "
-                     & DB.String_Vectors.Element (Line, 2));
+
+               if DB.String_Vectors.Element (Line, 1) /= "" then
+                  if Natural'Value
+                    (DB.String_Vectors.Element (Line, 1)) = Max_Insert
+                  then
+                     Text_IO.Put_Line ("Reader "
+                                       & Positive'Image (Task_Id)
+                                       & " Stop successfully");
+                     Line.Clear;
+                     Iter.End_Select;
+                     exit;
+                  end if;
+
+                  if Natural'Value
+                    (DB.String_Vectors.Element (Line, 1)) /= Last
+                  then
+                     Last := Natural'Value
+                       (DB.String_Vectors.Element (Line, 1));
+                     Text_IO.Put_Line
+                       ("Reader " & Positive'Image (Task_Id) & " see "
+                        & DB.String_Vectors.Element (Line, 1) & " write by "
+                        & DB.String_Vectors.Element (Line, 2));
+                  end if;
                end if;
                Line.Clear;
             end if;
@@ -167,10 +177,13 @@ procedure T1 is
          end;
       end loop;
    exception
-      when E : others => Text_IO.Put_Line (Exception_Information (E));
+      when E : others =>
+         Text_IO.Put_Line
+           ("Selects" & Positive'Image (Task_Id) & "; "
+            & Exception_Information (E));
    end Selects;
-begin
 
+begin
    Morzhol.Logs.Set (Morzhol.Logs.Information, False);
    Morzhol.Logs.Set (Morzhol.Logs.Warnings, False);
    Morzhol.Logs.Set (Morzhol.Logs.Error, True); --  show errors
@@ -184,19 +197,19 @@ begin
    end Create_DB;
 
    declare
-      Writer_1 : Inserts;
-      Writer_2 : Inserts;
-      Writer_3 : Inserts;
-      Reader_1 : Selects;
-      Reader_2 : Selects;
+      Writers : array (1 .. 2) of Inserts;
+      Readers : array (1 .. 10) of Selects;
    begin
+      --  Start the readers
+
+      for K in Readers'Range loop
+         Readers (K).Start (K);
+      end loop;
+
       --  Start the writer
 
-      Writer_1.Start (1);
-      Writer_2.Start (2);
-      Writer_3.Start (3);
-
-      Reader_1.Start (1);
-      Reader_2.Start (2);
+      for K in Writers'Range loop
+         Writers (K).Start (K);
+      end loop;
    end;
 end T1;
