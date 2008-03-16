@@ -35,6 +35,8 @@ endif
 all: build
 
 setup:
+runtests:
+	(cd tests; $(GNATMAKE) -Pregtests; ./t1)
 
 build:
 ifneq ($(INSTALL), "")
