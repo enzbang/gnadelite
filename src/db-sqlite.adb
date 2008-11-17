@@ -173,6 +173,7 @@ package body DB.SQLite is
    overriding procedure End_Select (Iter : in out Iterator) is
    begin
       Logs.Write (Module, "end_select");
+      Check_Result ("end_select", SQLite3.reset (Iter.S'Unchecked_Access));
       Check_Result ("end_select", SQLite3.finalize (Iter.S'Unchecked_Access));
    end End_Select;
 
