@@ -23,7 +23,6 @@ project Sqlite3 is
 
    for Source_Dirs use ();
 
-   for Library_Dir use "../../lib/gnadelite";
    for Library_Name use "sqlite3";
    for Library_Kind use "dynamic";
    for Externally_Built use "true";

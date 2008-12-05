@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --                                GnadeLite                                 --
 --                                                                          --
---                           Copyright (C) 2006                             --
+--                         Copyright (C) 2006-2008                          --
 --                      Pascal Obry - Olivier Ramonat                       --
 --                                                                          --
 --  This library is free software; you can redistribute it and/or modify    --
@@ -19,7 +19,8 @@
 --  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.       --
 ------------------------------------------------------------------------------
 
-with GNU.DB.SQLite3;
+private with sqlite3_h;
+private with Interfaces.C;
 
 package DB.SQLite is
 
@@ -74,7 +75,7 @@ package DB.SQLite is
    overriding procedure End_Select (Iter : in out Iterator);
 
    overriding procedure Execute (DB : in Handle; SQL : in String);
-   --  Execute SQL request into DB
+   --  Execute SQL request into DB. Raise DB_Error in case of failure.
 
    overriding function Last_Insert_Rowid (DB : in Handle) return String;
    --  Returns the Id of the last inserted row id
@@ -82,13 +83,13 @@ package DB.SQLite is
 private
 
    type Handle is new DB.Handle with record
-      H : GNU.DB.SQLite3.Handle;
+      H : aliased sqlite3_h.Handle_Access;
    end record;
 
    type Iterator is new DB.Iterator with record
       H    : Handle;
-      S    : aliased GNU.DB.SQLite3.Statement;
-      Col  : Natural;
+      S    : aliased sqlite3_h.Statement_Access := null;
+      Col  : Interfaces.C.int;
       More : Boolean;
    end record;
 

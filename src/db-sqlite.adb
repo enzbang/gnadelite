@@ -19,27 +19,26 @@
 --  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.       --
 ------------------------------------------------------------------------------
 
-with Ada.Unchecked_Deallocation;
+with Interfaces.C.Strings;
+with System;
 
 with Morzhol.Logs;
 
 package body DB.SQLite is
 
-   use GNU.DB;
    use Morzhol;
+
+   use Interfaces.C;
 
    Module : constant Logs.Module_Name := "DB_SQLITE";
 
-   Unique_Handle : SQLite3.Handle := null;
+   Unique_Handle : sqlite3_h.Handle_Access := null;
    --  Unique handle to use when we want to use in memory connection
 
-   procedure Unchecked_Free is new Unchecked_Deallocation
-     (Object => SQLite3.Object, Name => SQLite3.Handle);
-
    procedure Check_Result
-     (Routine : in String;
-      Result  : in SQLite3.Return_Value);
-   pragma Inline (Check_Result);
+     (Routine   : in String;
+      Result    : in int;
+      Error_Msg : in Strings.chars_ptr := Strings.Null_Ptr);
    --  Check result, raises and exception if it is an error code
 
    procedure Step_Internal (Iter : in out Iterator);
@@ -50,15 +49,19 @@ package body DB.SQLite is
    protected SQLite_Safe is
 
       procedure Close
-        (DB : in Handle; Result : out SQLite3.Return_Value);
+        (DB : in Handle; Result : out int);
       --  Close the database
 
       procedure Exec
-        (DB : in Handle; SQL : in String; Result : out SQLite3.Return_Value);
+        (DB     : in Handle;
+         SQL    : in String);
       --  Execute an SQL statement
+      --  Raise DB_Error is case of failure
 
       procedure Open
-        (DB : in Handle; Name : in String; Result : out SQLite3.Return_Value);
+        (DB     : in Handle;
+         Name   : in String;
+         Result : out int);
       --  Open the database
 
       function Prepare_Select
@@ -84,20 +87,54 @@ package body DB.SQLite is
    ------------------
 
    procedure Check_Result
-     (Routine : in String;
-      Result  : in SQLite3.Return_Value)
+     (Routine   : in String;
+      Result    : in int;
+      Error_Msg : in Strings.chars_ptr := Strings.Null_Ptr)
    is
-      use type SQLite3.Return_Value;
+      use type sqlite3_h.sqlite_result;
+      DB_Result : sqlite3_h.sqlite_result;
+      for DB_Result'Address use Result'Address;
+
+      function Error_Message return String;
+      --  Returns and free Error_Msg content if not null
+
+      -------------------
+      -- Error_Message --
+      -------------------
+
+      function Error_Message return String is
+         use type Strings.chars_ptr;
+      begin
+         if Error_Msg = Strings.Null_Ptr then
+            return "";
+         else
+            Free : declare
+               V : constant String := Strings.Value (Error_Msg);
+            begin
+               sqlite3_h.sqlite3_free (Error_Msg'Address);
+               return V;
+            end Free;
+         end if;
+      end Error_Message;
+
    begin
-      if Result /= SQLite3.SQLITE_OK then
+      if not DB_Result'Valid then
+         Logs.Write
+           (Name    => Module,
+            Kind    => Logs.Error,
+            Content => "SQLite3 has return an unknown result in !" & Routine);
+         raise DB_Error with "SQlite: Error (Unknown Error) in " & Routine;
+      end if;
+      if DB_Result /= sqlite3_h.SQLITE_OK then
          Logs.Write
            (Name    => Module,
             Kind    => Logs.Error,
             Content => Logs.NV
-              ("Return_Value", SQLite3.Return_Value'Image (Result))
-              & ", " & Logs.NV ("routine", Routine));
+              ("Return_Value", sqlite3_h.sqlite_result'Image (DB_Result))
+            & ", " & Logs.NV ("routine", Routine)
+            & ", " & Logs.NV ("message", Error_Message));
          raise DB_Error
-           with "SQLite: Error " & SQLite3.Return_Value'Image (Result) &
+           with "SQLite: Error " & sqlite3_h.sqlite_result'Image (DB_Result) &
              " in " & Routine;
       end if;
    end Check_Result;
@@ -107,12 +144,11 @@ package body DB.SQLite is
    -----------
 
    overriding procedure Close (DB : in out Handle) is
-      Result : SQLite3.Return_Value;
+      Result : int;
    begin
       Logs.Write (Module, "close");
       SQLite_Safe.Close (DB, Result);
       Check_Result ("close", Result);
-      Unchecked_Free (DB.H);
    end Close;
 
    ------------
@@ -136,19 +172,17 @@ package body DB.SQLite is
       Password : in     String := "")
    is
       pragma Unreferenced (User, Password);
-      use type GNU.DB.SQLite3.Handle;
-
-      Result : SQLite3.Return_Value;
+      use type sqlite3_h.Handle_Access;
+      Result : int;
    begin
       Logs.Write (Module, "connect " & Logs.NV ("Name", Name));
 
       if Name = In_Memory_Database then
          if Unique_Handle = null then
+            DB.H := new sqlite3_h.Handle;
             --  Open only one database connection !
-
-            Unique_Handle := new GNU.DB.SQLite3.Object;
-            DB.H := Unique_Handle;
             SQLite_Safe.Open (DB, Name, Result);
+            Unique_Handle := DB.H;
             Check_Result ("connect", Result);
 
          elsif DB.H = null then
@@ -157,10 +191,6 @@ package body DB.SQLite is
          end if;
 
       else
-         if DB.H = null then
-            DB.H := new GNU.DB.SQLite3.Object;
-         end if;
-
          SQLite_Safe.Open (DB, Name, Result);
          Check_Result ("connect", Result);
       end if;
@@ -173,8 +203,10 @@ package body DB.SQLite is
    overriding procedure End_Select (Iter : in out Iterator) is
    begin
       Logs.Write (Module, "end_select");
-      Check_Result ("end_select", SQLite3.reset (Iter.S'Unchecked_Access));
-      Check_Result ("end_select", SQLite3.finalize (Iter.S'Unchecked_Access));
+      Check_Result ("end_select_reset",
+                    sqlite3_h.sqlite3_reset (Iter.S.all'Address));
+      Check_Result ("end_select",
+                    sqlite3_h.sqlite3_finalize (Iter.S.all'Address));
    end End_Select;
 
    -------------
@@ -182,11 +214,9 @@ package body DB.SQLite is
    -------------
 
    overriding procedure Execute (DB : in Handle; SQL : in String) is
-      Result : SQLite3.Return_Value;
    begin
       Logs.Write (Module, "execute : " & Logs.NV ("SQL", SQL));
-      SQLite_Safe.Exec (DB, SQL, Result);
-      Check_Result ("execute", Result);
+      SQLite_Safe.Exec (DB, SQL);
    exception
       when DB_Error =>
          raise DB_Error with "DB_Error on Execute " & SQL;
@@ -200,11 +230,21 @@ package body DB.SQLite is
      (Iter   : in out Iterator;
       Result :    out String_Vectors.Vector)
    is
-      use type SQLite3.Return_Value;
    begin
       for K in 0 .. Iter.Col - 1 loop
-         String_Vectors.Append
-           (Result, SQLite3.column_text (Iter.S'Unchecked_Access, K));
+         declare
+            Text : constant Strings.chars_ptr :=
+                     sqlite3_h.sqlite3_column_text (Iter.S.all'Address, K);
+            use type Strings.chars_ptr;
+         begin
+            if Text /= Strings.Null_Ptr then
+               String_Vectors.Append
+                 (Result,
+                  Interfaces.C.Strings.Value (Text));
+            else
+               String_Vectors.Append (Result, "");
+            end if;
+         end;
       end loop;
 
       Step_Internal (Iter);
@@ -216,7 +256,8 @@ package body DB.SQLite is
 
    overriding function Last_Insert_Rowid (DB : in Handle) return String is
       Rowid : constant String :=
-                SQLite3.uint64'Image (SQLite3.Last_Insert_Rowid (DB.H));
+                sqlite3_h.sqlite_int64'Image
+                  (sqlite3_h.sqlite3_last_insert_rowid (DB.H.all'Address));
    begin
       --  Skip first whitespace returned by 'Image
       return Rowid (Rowid'First + 1 .. Rowid'Last);
@@ -240,7 +281,6 @@ package body DB.SQLite is
       Iter : in out Standard.DB.Iterator'Class;
       SQL  : in     String)
    is
-      use type SQLite3.Statement_Reference;
    begin
       Iter := SQLite_Safe.Prepare_Select (DB, Iter, SQL);
    end Prepare_Select;
@@ -266,9 +306,9 @@ package body DB.SQLite is
       -----------
 
       procedure Close
-        (DB : in Handle; Result : out SQLite3.Return_Value) is
+        (DB : in Handle; Result : out int) is
       begin
-         Result := SQLite3.Close (DB.H);
+         Result := sqlite3_h.sqlite3_close (DB.H.all'Address);
       end Close;
 
       ----------
@@ -276,9 +316,19 @@ package body DB.SQLite is
       ----------
 
       procedure Exec
-        (DB : in Handle; SQL : in String; Result : out SQLite3.Return_Value) is
+        (DB : in Handle; SQL : in String) is
+         SQL_Stat : Strings.chars_ptr := Strings.New_String (SQL);
+         Result    : int;
+         Error_Msg : Strings.chars_ptr;
       begin
-         Result := SQLite3.Exec (DB.H, SQL);
+         Result := sqlite3_h.sqlite3_exec_no_callback
+           (DB.H.all'Address, SQL_Stat, System.Null_Address,
+            System.Null_Address, Error_Msg'Address);
+
+         Check_Result ("Execute", Result, Error_Msg);
+
+         --  Free
+         Strings.Free (SQL_Stat);
       end Exec;
 
       ----------
@@ -288,9 +338,11 @@ package body DB.SQLite is
       procedure Open
         (DB     : in Handle;
          Name   : in String;
-         Result : out SQLite3.Return_Value) is
+         Result : out int) is
+         SQL_Name : Strings.chars_ptr := Strings.New_String (Name);
       begin
-         Result := SQLite3.Open (DB.H, Name);
+         Result := sqlite3_h.sqlite3_open (SQL_Name, DB.H'Address);
+         Strings.Free (SQL_Name);
       end Open;
 
       --------------------
@@ -302,8 +354,9 @@ package body DB.SQLite is
          Iter : in Standard.DB.Iterator'Class;
          SQL  : in String) return Standard.DB.Iterator'Class
       is
-         use type SQLite3.Statement_Reference;
          Select_Iter : Standard.DB.Iterator'Class := Iter;
+         zSql        : Strings.chars_ptr := Strings.New_String (SQL);
+         Select_Res  : int;
       begin
          pragma Assert (Select_Iter in Iterator);
          Logs.Write
@@ -312,15 +365,31 @@ package body DB.SQLite is
          Iterator (Select_Iter).H := DB;
          Iterator (Select_Iter).More := False;
 
-         Check_Result
-           ("prepare_select",
-            SQLite3.prepare
-              (DB.H, SQL, Iterator (Select_Iter).S'Unchecked_Access));
+         Select_Res := sqlite3_h.sqlite3_prepare_v2
+              (db     => DB.H.all'Address,
+               zSql   => zSql,
+               nByte  => int (-1), --  ??? better will be len (SQL) + 1
+               ppStmt => Iterator (Select_Iter).S'Address,
+               pzTail => System.Null_Address);
 
-         Iterator (Select_Iter).Col :=
-           SQLite3.column_count (Iterator (Select_Iter).S'Unchecked_Access);
+         Check_Result ("prepare_select", Select_Res);
 
-         Step_Internal (Iterator (Select_Iter));
+         Column_Count : declare
+            DB_Result : sqlite3_h.sqlite_result;
+            for DB_Result'Address use Select_Res'Address;
+            use type sqlite3_h.sqlite_result;
+         begin
+            if DB_Result = sqlite3_h.SQLITE_DONE then
+               Iterator (Select_Iter).Col := 0;
+            else
+               Iterator (Select_Iter).Col :=
+                 sqlite3_h.sqlite3_column_count
+                   (Iterator (Select_Iter).S.all'Address);
+               Step_Internal (Iterator (Select_Iter));
+            end if;
+         end Column_Count;
+
+         Strings.Free (zSql);
          return Select_Iter;
       end Prepare_Select;
 
@@ -331,21 +400,32 @@ package body DB.SQLite is
    -------------------
 
    procedure Step_Internal (Iter : in out Iterator) is
-      use type SQLite3.Return_Value;
-      R : SQLite3.Return_Value;
+      R : int;
    begin
-      R := SQLite3.step (Iter.S'Unchecked_Access);
+      R := sqlite3_h.sqlite3_step (Iter.S.all'Address);
 
-      if R = SQLite3.SQLITE_DONE then
-         Iter.More := False;
+      Analyse_Result : declare
+         Result : sqlite3_h.sqlite_result;
+         for Result'Address use R'Address;
 
-      elsif R = SQLite3.SQLITE_ROW then
-         Iter.More := True;
-
-      else
-         Check_Result ("step_internal", R);
-         Iter.More := False;
-      end if;
+         use type sqlite3_h.sqlite_result;
+      begin
+         if not Result'Valid then
+            raise DB_Error with "Wrong result from sqlite3_step ???";
+         else
+            if Result = sqlite3_h.SQLITE_DONE then
+               Iter.More := False;
+            elsif Result = sqlite3_h.SQLITE_ROW then
+               Iter.More := True;
+            else
+               Check_Result ("step_internal", R);
+               Iter.More := False;
+            end if;
+         end if;
+      end Analyse_Result;
    end Step_Internal;
 
+
+begin
+   Check_Result ("initialize", sqlite3_h.sqlite3_initialize);
 end DB.SQLite;

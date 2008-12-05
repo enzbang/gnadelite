@@ -36,7 +36,7 @@ all: build
 
 setup:
 runtests:
-	(cd tests; $(GNATMAKE) -Pregtests; ./t1)
+	(cd tests; $(GNATMAKE) -Pregtests; $(RUNTEST) ./t1)
 
 build:
 ifneq ($(INSTALL), "")
