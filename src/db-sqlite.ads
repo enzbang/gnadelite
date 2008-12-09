@@ -83,7 +83,8 @@ package DB.SQLite is
 private
 
    type Handle is new DB.Handle with record
-      H : aliased sqlite3_h.Handle_Access;
+      H         : aliased sqlite3_h.Handle_Access;
+      Ref_Count : Natural := 0;
    end record;
 
    type Iterator is new DB.Iterator with record

@@ -49,7 +49,7 @@ package body DB.SQLite is
    protected SQLite_Safe is
 
       procedure Close
-        (DB : in Handle; Result : out int);
+        (DB : in out Handle; Result : out int);
       --  Close the database
 
       procedure Exec
@@ -59,9 +59,9 @@ package body DB.SQLite is
       --  Raise DB_Error is case of failure
 
       procedure Open
-        (DB     : in Handle;
-         Name   : in String;
-         Result : out int);
+        (DB     : in out Handle;
+         Name   : in     String;
+         Result :    out int);
       --  Open the database
 
       function Prepare_Select
@@ -177,23 +177,8 @@ package body DB.SQLite is
    begin
       Logs.Write (Module, "connect " & Logs.NV ("Name", Name));
 
-      if Name = In_Memory_Database then
-         if Unique_Handle = null then
-            DB.H := new sqlite3_h.Handle;
-            --  Open only one database connection !
-            SQLite_Safe.Open (DB, Name, Result);
-            Unique_Handle := DB.H;
-            Check_Result ("connect", Result);
-
-         elsif DB.H = null then
-            --  Get the open database connection
-            DB.H := Unique_Handle;
-         end if;
-
-      else
-         SQLite_Safe.Open (DB, Name, Result);
-         Check_Result ("connect", Result);
-      end if;
+      SQLite_Safe.Open (DB, Name, Result);
+      Check_Result ("connect", Result);
    end Connect;
 
    ----------------
@@ -306,9 +291,14 @@ package body DB.SQLite is
       -----------
 
       procedure Close
-        (DB : in Handle; Result : out int) is
+        (DB : in out Handle; Result : out int) is
       begin
-         Result := sqlite3_h.sqlite3_close (DB.H.all'Address);
+         if DB.Ref_Count /= 0 then
+            DB.Ref_Count := DB.Ref_Count - 1;
+            Result := 0; --  SQLite3_OK;
+         else
+            Result := sqlite3_h.sqlite3_close (DB.H.all'Address);
+         end if;
       end Close;
 
       ----------
@@ -336,13 +326,38 @@ package body DB.SQLite is
       ----------
 
       procedure Open
-        (DB     : in Handle;
-         Name   : in String;
-         Result : out int) is
-         SQL_Name : Strings.chars_ptr := Strings.New_String (Name);
+        (DB     : in out Handle;
+         Name   : in     String;
+         Result :    out int) is
+
+         procedure Open_Db;
+         --  Open a database connection
+
+         procedure Open_Db is
+            SQL_Name : Strings.chars_ptr := Strings.New_String (Name);
+         begin
+            Result := sqlite3_h.sqlite3_open (SQL_Name, DB.H'Address);
+            Strings.Free (SQL_Name);
+         end Open_Db;
+
+         use type sqlite3_h.Handle_Access;
       begin
-         Result := sqlite3_h.sqlite3_open (SQL_Name, DB.H'Address);
-         Strings.Free (SQL_Name);
+         if Name = In_Memory_Database then
+            if Unique_Handle = null then
+               --  Open only one database connection !
+               Open_Db;
+               Unique_Handle := DB.H;
+            elsif DB.H = null then
+               --  Get the open database connection
+               DB.H   := Unique_Handle;
+               Result := 0; --  SQLite_OK
+
+               --  Increment the reference counter
+               DB.Ref_Count := DB.Ref_Count + 1;
+            end if;
+         else
+            Open_Db;
+         end if;
       end Open;
 
       --------------------
@@ -424,7 +439,6 @@ package body DB.SQLite is
          end if;
       end Analyse_Result;
    end Step_Internal;
-
 
 begin
    Check_Result ("initialize", sqlite3_h.sqlite3_initialize);
