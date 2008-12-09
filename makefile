@@ -36,7 +36,19 @@ all: build
 
 setup:
 runtests:
-	(cd tests; $(GNATMAKE) -Pregtests; $(RUNTEST) ./t1)
+	(cd tests; $(GNATMAKE) -Pregtests;)
+	@(cd tests; printf 't1... '; \
+		if test `$(RUNTEST) ./t1 | wc -l` = "10"; then \
+			printf "ok\n"; \
+		else \
+			printf "nok\n"; \
+		fi;)
+	@(cd tests; printf 't2... '; \
+		if test `$(runtest) ./t2` = 1234; then \
+			printf "ok\n"; \
+		else \
+			printf "nok\n"; \
+		fi;)
 
 build:
 ifneq ($(INSTALL), "")

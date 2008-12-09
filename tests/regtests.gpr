@@ -2,7 +2,7 @@ with "../gnadelite";
 
 project Regtests is
   for Source_Dirs use (".");
-  for Main use ("t1");
+  for Main use ("t1.adb", "t2.adb");
 
   package Compiler is
      for Default_Switches ("Ada") use ("-gnat05");

@@ -35,6 +35,7 @@ procedure T1 is
    use Ada.Exceptions;
 
    Max_Insert : constant Positive := 10000;
+   Verbose    : constant Boolean := False;
 
    task type Inserts is
       entry Start (Id : in Positive);
@@ -115,6 +116,8 @@ procedure T1 is
          exit when Current = Max_Insert;
          Current := Current + 1;
       end loop;
+
+      DBH.Handle.Close;
    exception
       when E : others =>
          Text_IO.Put_Line
@@ -133,7 +136,9 @@ procedure T1 is
    begin
       accept Start (Id : in Positive) do
          Task_Id := Id;
-         Text_IO.Put_Line ("Reader " & Positive'Image (Task_Id) & " start");
+         if Verbose then
+            Text_IO.Put_Line ("Reader " & Positive'Image (Task_Id) & " start");
+         end if;
          Connect (DBH);
       end Start;
 
@@ -160,7 +165,7 @@ procedure T1 is
                      exit;
                   end if;
 
-                  if Natural'Value
+                  if Verbose and then Natural'Value
                     (DB.String_Vectors.Element (Line, 1)) /= Last
                   then
                      Last := Natural'Value
@@ -176,6 +181,8 @@ procedure T1 is
             Iter.End_Select;
          end;
       end loop;
+
+      DBH.Handle.Close;
    exception
       when E : others =>
          Text_IO.Put_Line
@@ -212,4 +219,5 @@ begin
          Writers (K).Start (K);
       end loop;
    end;
+
 end T1;
