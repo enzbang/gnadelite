@@ -35,6 +35,7 @@ project GnadeLite is
    for Library_Name use "gnadelite";
    for Library_Kind use "dynamic";
    for Library_Version use "libgnadelite.so.1.0";
+   for Library_Options use ("-lsqlite3");
 
    --------------
    -- Compiler --
