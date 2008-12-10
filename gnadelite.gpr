@@ -59,8 +59,6 @@ project GnadeLite is
             for Default_Switches ("Ada") use Common_Options & Release_Options;
       end case;
 
-      for Switches ("gnu-db-sqlite3.adb") use ("-gnatyN");
-
    end Compiler;
 
 end GnadeLite;
