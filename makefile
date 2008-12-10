@@ -22,14 +22,19 @@
 
 include mk.config
 
-B_DIR=".build/$(shell echo $(MODE) | tr [[:upper:]] [[:lower:]])"
+B_DIR=.build/$(shell echo $(PRJ_BUILD) | tr [[:upper:]] [[:lower:]])
 
 APP := $(ADA_PROJECT_PATH)
+OPATH := $(PATH)
+OPB := $(PRJ_BUILD)
+
+export PRJ_BUILD=$(OPB)
 
 ifeq ($(OS),Windows_NT)
-export ADA_PROJECT_PATH=$PWD/external-libs/morzhol\;${APP}
+export ADA_PROJECT_PATH=$(PWD)/external-libs/morzhol\;${APP}
+export PATH=$(PWD)/lib:$(PWD)/external-libs/morzhol/$(B_DIR)/lib:$(OPATH)
 else
-export ADA_PROJECT_PATH=$PWD/external-libs/morzhol:${APP}
+export ADA_PROJECT_PATH=$(PWD)/external-libs/morzhol:${APP}
 endif
 
 all: build
@@ -44,11 +49,14 @@ runtests:
 			printf "nok\n"; \
 		fi;)
 	@(cd tests; printf 't2... '; \
-		if test `$(runtest) ./t2` = 1234; then \
-			printf "ok\n"; \
-		else \
-			printf "nok\n"; \
-		fi;)
+		case `$(RUNTEST) ./t2` in \
+			1234*) \
+				printf "ok\n"; \
+				;; \
+			*) \
+				printf "nok\n"; \
+				;; \
+		esac)
 
 build:
 ifneq ($(INSTALL), "")
