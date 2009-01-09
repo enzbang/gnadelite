@@ -441,5 +441,8 @@ package body DB.SQLite is
    end Step_Internal;
 
 begin
-   Check_Result ("initialize", sqlite3_h.sqlite3_initialize);
+   --  sqlite3_initialize is present only in very recent SQLite3
+   --  versions and it is safe to disable the call for now
+   --  Check_Result ("initialize", sqlite3_h.sqlite3_initialize);
+   null;
 end DB.SQLite;

@@ -20,9 +20,25 @@
 #
 ###########################################################################
 
-include mk.config
+all::
 
-B_DIR=.build/$(shell echo $(PRJ_BUILD) | tr [[:upper:]] [[:lower:]])
+# Options
+MODE              = Release
+BUILD_DIR         = .build/$(shell echo $(MODE) | tr [[:upper:]] [[:lower:]])
+GNATMAKE_OPTIONS  = -XPRJ_BUILD=$(MODE)
+VALGRIND          =
+
+CP      = cp -p
+MKDIR   = mkdir -p
+RM      = rm -f
+TAR_DIR = tar czf
+MV      = mv
+DIFF    = diff
+
+GNATMAKE  = gnat make $(GNATMAKE_OPTIONS) -p
+GNATCLEAN = gnat clean $(GNATMAKE_OPTIONS)
+GNATCHECK = gnat check
+GNATCHOP  = gnat chop
 
 APP := $(ADA_PROJECT_PATH)
 OPATH := $(PATH)
@@ -37,19 +53,46 @@ else
 export ADA_PROJECT_PATH=$(PWD)/external-libs/morzhol:${APP}
 endif
 
-all: build
+GNAT_ROOT         = $(dir $(shell which gnatls))..
+prefix            =
+ifeq (,$(prefix))
+	prefix = $(shell cat $(BUILD_DIR)/gnat.root 2>/dev/null)
+endif
 
+GPR =
+GPR += gnadelite
+GPR += tests/regtests
+
+BLD_GPR := $(addprefix bld-, $(GPR))
+CLN_GPR := $(addprefix cln-, $(GPR))
+CHK_GPR := $(addprefix chk-, $(GPR))
+
+$(BLD_GPR): bld-% :
+	$(GNATMAKE) -P$*
+
+$(CLN_GPR): cln-% :
+	$(GNATCLEAN) -P$*
+
+$(CHK_GPR): chk-% :
+	$(GNATCHECK) -P$*
+
+all:: prepare_install bld-gnadelite
+
+
+# Aliases or dummy target
 setup:
-runtests:
-	(cd tests; $(GNATMAKE) -Pregtests;)
+runtests: regtests
+build: all
+
+regtests: bld-tests/regtests
 	@(cd tests; printf 't1... '; \
-		if test `$(RUNTEST) ./t1 | wc -l` = "10"; then \
+		if test `$(RUNTEST) $(BUILD_DIR)/obj/t1 | wc -l` = "10"; then \
 			printf "ok\n"; \
 		else \
 			printf "nok\n"; \
 		fi;)
 	@(cd tests; printf 't2... '; \
-		case `$(RUNTEST) ./t2` in \
+		case `$(RUNTEST) $(BUILD_DIR)/obj/t2` in \
 			1234*) \
 				printf "ok\n"; \
 				;; \
@@ -58,25 +101,17 @@ runtests:
 				;; \
 		esac)
 
-build:
-ifneq ($(INSTALL), "")
-# Write INSTALL target into mk.install (see install target)
-	$(shell echo $(INSTALL) > mk.install)
-endif
-	$(GNATMAKE) -Pgnadelite
+clean:: $(CLN_GPR)
 
-clean:
-	$(GNATCLEAN) -Pgnadelite
-
-I_BIN	   = $(INSTALL)/bin
-I_INC	   = $(INSTALL)/include/gnadelite
-I_INC_G	   = $(INSTALL)/include/gnadelite/gnade
-I_LIB	   = $(INSTALL)/lib/gnadelite
-I_GPR	   = $(INSTALL)/lib/gnat
+I_BIN	   = $(prefix)/bin
+I_INC	   = $(prefix)/include/gnadelite
+I_INC_G	   = $(prefix)/include/gnadelite/gnade
+I_LIB	   = $(prefix)/lib/gnadelite
+I_GPR	   = $(prefix)/lib/gnat
 
 install_clean:
-ifeq ("$(INSTALL)", "")
-	$(error "Wrong install path : empty INSTALL var")
+ifeq ("$(prefix)", "")
+	$(error "Wrong install path : empty prefix var")
 endif
 	$(RM) -fr $(I_INC)
 	$(RM) -fr $(I_LIB)
@@ -99,10 +134,13 @@ endif
 
 install: install_dirs
 	$(CP) src/*.ad[sb] $(I_INC)
-	$(CP) gnade_src/*.ad[sb] $(I_INC_G)
 	$(CP) lib/*.ali $(I_LIB)
 	$(CP) lib/*$(SOEXT) $(I_LIB)
 	$(CP) gpr/*.gpr $(I_GPR)
 ifeq ($(OS), Windows_NT)
 	$(CP) $(I_LIB)/*$(SOEXT) $(I_LIB)/..
 endif
+
+prepare_install::
+	$(MKDIR) $(BUILD_DIR)
+	$(shell echo $(GNAT_ROOT) > $(BUILD_DIR)/gnat.root)

@@ -3,9 +3,24 @@ with "../gnadelite";
 project Regtests is
   for Source_Dirs use (".");
   for Main use ("t1.adb", "t2.adb");
+  type Build_Type is ("Debug", "Release", "Profile");
+  Build : Build_Type := external ("PRJ_BUILD", "Debug");
 
   package Compiler is
      for Default_Switches ("Ada") use ("-gnat05");
   end Compiler;
-end Regtests;
 
+  case Build is
+     when "Debug" =>
+        for Object_Dir use ".build/debug/obj";
+        for Library_Dir use ".build/debug/lib";
+     when "Profile" =>
+        for Object_Dir use ".build/profile/obj";
+        for Library_Dir use ".build/profile/lib";
+        for Library_Options use Project'Library_Options & ("-fprofile-arcs");
+     when "Release" =>
+        for Object_Dir use ".build/release/obj";
+        for Library_Dir use ".build/release/lib";
+  end case;
+
+end Regtests;

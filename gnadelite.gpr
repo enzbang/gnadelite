@@ -50,6 +50,19 @@ project GnadeLite is
    Release_Options :=
      ("-O2");
 
+   case Build is
+      when "Debug" =>
+         for Object_Dir use ".build/debug/obj";
+         for Library_Dir use ".build/debug/lib";
+      when "Profile" =>
+         for Object_Dir use ".build/profile/obj";
+         for Library_Dir use ".build/profile/lib";
+         for Library_Options use Project'Library_Options & ("-fprofile-arcs");
+      when "Release" =>
+         for Object_Dir use ".build/release/obj";
+         for Library_Dir use ".build/release/lib";
+   end case;
+
    package Compiler is
 
       case Build is
