@@ -46,7 +46,6 @@ with Interfaces.C.Extensions;
 with System;
 
 package sqlite3_h is
-
    SQLITE_VERSION : aliased constant String := "3.6.6.1" & ASCII.NUL;  --  /usr/include/sqlite3.h:110
    SQLITE_VERSION_NUMBER : constant := 3006006;  --  /usr/include/sqlite3.h:111
 
