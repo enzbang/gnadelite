@@ -10,3 +10,4 @@ t1
 t2
 tests/test.db
 tests/test.db-journal
+.build
