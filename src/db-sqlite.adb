@@ -391,7 +391,7 @@ package body DB.SQLite is
          Select_Res := sqlite3_h.sqlite3_prepare_v2
               (db     => DB.H.all'Address,
                zSql   => zSql,
-               nByte  => int (-1), --  ??? better will be len (SQL) + 1
+               nByte  => SQL'Length + 1,
                ppStmt => Iterator (Select_Iter).S'Address,
                pzTail => System.Null_Address);
 
