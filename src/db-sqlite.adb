@@ -27,7 +27,6 @@ with Morzhol.Logs;
 package body DB.SQLite is
 
    use Morzhol;
-
    use Interfaces.C;
 
    Module : constant Logs.Module_Name := "DB_SQLITE";
@@ -92,6 +91,7 @@ package body DB.SQLite is
       Error_Msg : in Strings.chars_ptr := Strings.Null_Ptr)
    is
       use type sqlite3_h.sqlite_result;
+
       DB_Result : sqlite3_h.sqlite_result;
       for DB_Result'Address use Result'Address;
 
@@ -125,6 +125,7 @@ package body DB.SQLite is
             Content => "SQLite3 has return an unknown result in !" & Routine);
          raise DB_Error with "SQlite: Error (Unknown Error) in " & Routine;
       end if;
+
       if DB_Result /= sqlite3_h.SQLITE_OK then
          Logs.Write
            (Name    => Module,
@@ -134,8 +135,8 @@ package body DB.SQLite is
             & ", " & Logs.NV ("routine", Routine)
             & ", " & Logs.NV ("message", Error_Message));
          raise DB_Error
-           with "SQLite: Error " & sqlite3_h.sqlite_result'Image (DB_Result) &
-             " in " & Routine;
+           with "SQLite: Error "
+             & sqlite3_h.sqlite_result'Image (DB_Result) & " in " & Routine;
       end if;
    end Check_Result;
 
@@ -173,10 +174,10 @@ package body DB.SQLite is
    is
       pragma Unreferenced (User, Password);
       use type sqlite3_h.Handle_Access;
+
       Result : int;
    begin
       Logs.Write (Module, "connect " & Logs.NV ("Name", Name));
-
       SQLite_Safe.Open (DB, Name, Result);
       Check_Result ("connect", Result);
    end Connect;
@@ -333,6 +334,10 @@ package body DB.SQLite is
          procedure Open_Db;
          --  Open a database connection
 
+         -------------
+         -- Open_Db --
+         -------------
+
          procedure Open_Db is
             SQL_Name : Strings.chars_ptr := Strings.New_String (Name);
          begin
@@ -347,6 +352,7 @@ package body DB.SQLite is
                --  Open only one database connection !
                Open_Db;
                Unique_Handle := DB.H;
+
             elsif DB.H = null then
                --  Get the open database connection
                DB.H   := Unique_Handle;
@@ -355,6 +361,7 @@ package body DB.SQLite is
                --  Increment the reference counter
                DB.Ref_Count := DB.Ref_Count + 1;
             end if;
+
          else
             Open_Db;
          end if;
@@ -374,6 +381,7 @@ package body DB.SQLite is
          Select_Res  : int;
       begin
          pragma Assert (Select_Iter in Iterator);
+
          Logs.Write
            (Module, "prepare select : " & Logs.NV ("SQL", SQL));
 
@@ -390,15 +398,16 @@ package body DB.SQLite is
          Check_Result ("prepare_select", Select_Res);
 
          Column_Count : declare
+            use type sqlite3_h.sqlite_result;
+
             DB_Result : sqlite3_h.sqlite_result;
             for DB_Result'Address use Select_Res'Address;
-            use type sqlite3_h.sqlite_result;
          begin
             if DB_Result = sqlite3_h.SQLITE_DONE then
                Iterator (Select_Iter).Col := 0;
             else
                Iterator (Select_Iter).Col :=
-                 sqlite3_h.sqlite3_column_count
+                 sqlite3_h.Sqlite3_Column_Count
                    (Iterator (Select_Iter).S.all'Address);
                Step_Internal (Iterator (Select_Iter));
             end if;
@@ -407,7 +416,6 @@ package body DB.SQLite is
          Strings.Free (zSql);
          return Select_Iter;
       end Prepare_Select;
-
    end SQLite_Safe;
 
    -------------------
@@ -426,7 +434,7 @@ package body DB.SQLite is
          use type sqlite3_h.sqlite_result;
       begin
          if not Result'Valid then
-            raise DB_Error with "Wrong result from sqlite3_step ???";
+            raise DB_Error with "Wrong result from sqlite3_step ?";
          else
             if Result = sqlite3_h.SQLITE_DONE then
                Iter.More := False;
