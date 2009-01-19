@@ -134,8 +134,8 @@ endif
 
 install: install_dirs
 	$(CP) src/*.ad[sb] $(I_INC)
-	$(CP) lib/*.ali $(I_LIB)
-	$(CP) lib/*$(SOEXT) $(I_LIB)
+	$(CP) $(BUILD_DIR)/obj/*.ali $(I_LIB)
+	$(CP) $(BUILD_DIR)/lib/*$(SOEXT) $(I_LIB)
 	$(CP) gpr/*.gpr $(I_GPR)
 ifeq ($(OS), Windows_NT)
 	$(CP) $(I_LIB)/*$(SOEXT) $(I_LIB)/..
