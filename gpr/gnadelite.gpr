@@ -28,7 +28,6 @@ project GnadeLite is
    for Library_Dir use "../../lib/gnadelite";
    for Library_Name use "gnadelite";
    for Library_Kind use "dynamic";
-   for Library_Options use ("-lsqlite3");
    for Externally_Built use "true";
 
 end GnadeLite;
