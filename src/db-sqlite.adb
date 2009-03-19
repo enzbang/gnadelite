@@ -217,6 +217,7 @@ package body DB.SQLite is
       Result :    out String_Vectors.Vector)
    is
    begin
+      Result.Clear;
       for K in 0 .. Iter.Col - 1 loop
          declare
             Text : constant Strings.chars_ptr :=
