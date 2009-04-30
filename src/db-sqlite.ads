@@ -39,6 +39,7 @@ package DB.SQLite is
       User     : in     String := "";
       Password : in     String := "");
    --  Open the database named Name
+   pragma Precondition (Name /= "");
 
    overriding procedure Close (DB : in out Handle);
    --  Close the current database
@@ -63,6 +64,7 @@ package DB.SQLite is
       Iter : in out Standard.DB.Iterator'Class;
       SQL  : in     String);
    --  Prepare a select statement (SQL must be a select command)
+   pragma Precondition (SQL /= "");
 
    overriding procedure Get_Line
      (Iter   : in out Iterator;
@@ -76,6 +78,7 @@ package DB.SQLite is
 
    overriding procedure Execute (DB : in Handle; SQL : in String);
    --  Execute SQL request into DB. Raise DB_Error in case of failure.
+   pragma Precondition (SQL /= "");
 
    overriding function Last_Insert_Rowid (DB : in Handle) return String;
    --  Returns the Id of the last inserted row id

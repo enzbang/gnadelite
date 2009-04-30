@@ -28,6 +28,7 @@ package body DB.SQLite is
 
    use Morzhol;
    use Interfaces.C;
+   use type sqlite3_h.Handle_Access;
 
    Module : constant Logs.Module_Name := "DB_SQLITE";
 
@@ -50,24 +51,32 @@ package body DB.SQLite is
       procedure Close
         (DB : in out Handle; Result : out int);
       --  Close the database
+      pragma Precondition (DB.H /= null);
 
       procedure Exec
         (DB     : in Handle;
          SQL    : in String);
       --  Execute an SQL statement
       --  Raise DB_Error is case of failure
+      pragma Precondition (SQL /= "");
+      pragma Precondition (DB.H /= null);
+      pragma Postcondition (DB.H /= null);
 
       procedure Open
         (DB     : in out Handle;
          Name   : in     String;
          Result :    out int);
       --  Open the database
+      pragma Precondition (Name /= "");
 
       function Prepare_Select
         (DB   : in Handle;
          Iter : in Standard.DB.Iterator'Class;
          SQL  : in String) return Standard.DB.Iterator'Class;
       --  Prepare a select statement
+      pragma Precondition (SQL /= "");
+      pragma Precondition (DB.H /= null);
+      pragma Postcondition (DB.H /= null);
 
    end SQLite_Safe;
 
@@ -173,7 +182,6 @@ package body DB.SQLite is
       Password : in     String := "")
    is
       pragma Unreferenced (User, Password);
-      use type sqlite3_h.Handle_Access;
 
       Result : int;
    begin
@@ -346,7 +354,6 @@ package body DB.SQLite is
             Strings.Free (SQL_Name);
          end Open_Db;
 
-         use type sqlite3_h.Handle_Access;
       begin
          if Name = In_Memory_Database then
             if Unique_Handle = null then
