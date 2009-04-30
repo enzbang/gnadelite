@@ -82,6 +82,7 @@ all:: prepare_install bld-gnadelite
 # Aliases or dummy target
 setup:
 runtests: regtests
+test: regtests
 build: all
 
 regtests: bld-tests/regtests
