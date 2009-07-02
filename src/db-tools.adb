@@ -45,7 +45,7 @@ package body DB.Tools is
 
    function Q (Str : in String) return String is
       S : String (1 .. 2 + Str'Length * 2);
-      J : Positive := S'First;
+      J : Positive := 1;
    begin
       if Str = "" then
          return "NULL";
