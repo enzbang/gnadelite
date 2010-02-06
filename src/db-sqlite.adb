@@ -368,6 +368,10 @@ package body DB.SQLite is
 
                --  Increment the reference counter
                DB.Ref_Count := DB.Ref_Count + 1;
+
+            else
+               --  Nothing to do. Return OK
+               Result := 0; -- SQLite_OK
             end if;
 
          else
