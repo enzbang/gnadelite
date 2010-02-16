@@ -419,7 +419,7 @@ package body DB.SQLite is
                Iterator (Select_Iter).Col := 0;
             else
                Iterator (Select_Iter).Col :=
-                 sqlite3_h.Sqlite3_Column_Count
+                 sqlite3_h.sqlite3_column_count
                    (Iterator (Select_Iter).S.all'Address);
                Step_Internal (Iterator (Select_Iter));
             end if;
