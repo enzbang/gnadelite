@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --                                GnadeLite                                 --
 --                                                                          --
---                         Copyright (C) 2006-2008                          --
+--                         Copyright (C) 2006-2010                          --
 --                      Pascal Obry - Olivier Ramonat                       --
 --                                                                          --
 --  This library is free software; you can redistribute it and/or modify    --
@@ -116,6 +116,7 @@ package body DB.SQLite is
       begin
          if Error_Msg = Strings.Null_Ptr then
             return "";
+
          else
             Free : declare
                V : constant String := Strings.Value (Error_Msg);
@@ -316,8 +317,9 @@ package body DB.SQLite is
       ----------
 
       procedure Exec
-        (DB : in Handle; SQL : in String) is
-         SQL_Stat : Strings.chars_ptr := Strings.New_String (SQL);
+        (DB : in Handle; SQL : in String)
+      is
+         SQL_Stat  : Strings.chars_ptr := Strings.New_String (SQL);
          Result    : int;
          Error_Msg : Strings.chars_ptr;
       begin
@@ -328,6 +330,7 @@ package body DB.SQLite is
          Check_Result ("Execute", Result, Error_Msg);
 
          --  Free
+
          Strings.Free (SQL_Stat);
       end Exec;
 
@@ -428,6 +431,7 @@ package body DB.SQLite is
          Strings.Free (zSql);
          return Select_Iter;
       end Prepare_Select;
+
    end SQLite_Safe;
 
    -------------------
