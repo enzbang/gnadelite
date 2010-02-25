@@ -327,11 +327,11 @@ package body DB.SQLite is
            (DB.H.all'Address, SQL_Stat, System.Null_Address,
             System.Null_Address, Error_Msg'Address);
 
-         Check_Result ("Execute", Result, Error_Msg);
-
          --  Free
 
          Strings.Free (SQL_Stat);
+
+         Check_Result ("Execute", Result, Error_Msg);
       end Exec;
 
       ----------
@@ -410,6 +410,8 @@ package body DB.SQLite is
                ppStmt => Iterator (Select_Iter).S'Address,
                pzTail => System.Null_Address);
 
+         Strings.Free (zSql);
+
          Check_Result ("prepare_select", Select_Res);
 
          Column_Count : declare
@@ -428,7 +430,6 @@ package body DB.SQLite is
             end if;
          end Column_Count;
 
-         Strings.Free (zSql);
          return Select_Iter;
       end Prepare_Select;
 
