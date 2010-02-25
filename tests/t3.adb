@@ -1,7 +1,7 @@
 ------------------------------------------------------------------------------
 --                                GnadeLite                                 --
 --                                                                          --
---                         Copyright (C) 2008-2010                          --
+--                            Copyright (C) 2010                            --
 --                      Pascal Obry - Olivier Ramonat                       --
 --                                                                          --
 --  This library is free software; you can redistribute it and/or modify    --
@@ -19,32 +19,39 @@
 --  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.       --
 ------------------------------------------------------------------------------
 
-with "../gnadelite";
+with Ada.Text_IO;
+with Ada.Exceptions;
 
-project Regtests is
+with DB.SQLite;
 
-  for Source_Dirs use (".");
-  for Main use ("t1.adb", "t2.adb", "t3.adb");
+with Morzhol.Logs;
 
-  type Build_Type is ("Debug", "Release", "Profile");
-  Build : Build_Type := external ("PRJ_BUILD", "Debug");
+procedure T3 is
+   use Ada;
+   use Ada.Exceptions;
 
-  package Compiler is
-     for Default_Switches ("Ada") use
-       GnadeLite.Compiler'Default_Switches ("Ada");
-  end Compiler;
+   Handle : DB.SQLite.Handle;
+begin
+   Morzhol.Logs.Set (Morzhol.Logs.Information, False);
+   Morzhol.Logs.Set (Morzhol.Logs.Warnings, False);
+   Morzhol.Logs.Set (Morzhol.Logs.Error, False);
 
-  case Build is
-     when "Debug" =>
-        for Object_Dir use ".build/debug/obj";
-        for Library_Dir use ".build/debug/lib";
-     when "Profile" =>
-        for Object_Dir use ".build/profile/obj";
-        for Library_Dir use ".build/profile/lib";
-        for Library_Options use Project'Library_Options & ("-fprofile-arcs");
-     when "Release" =>
-        for Object_Dir use ".build/release/obj";
-        for Library_Dir use ".build/release/lib";
-  end case;
 
-end Regtests;
+   Handle.Connect (DB.SQLite.In_Memory_Database);
+
+   Handle.Execute ("update user set toto='toto'");
+
+   Handle.Close;
+
+   Text_IO.Put_Line ("NOK");
+
+exception
+   when E : others =>
+      if Exception_Message (E)
+        = "DB_Error on Execute update user set toto='toto'"
+      then
+         Text_IO.Put_Line ("OK");
+      else
+         Text_IO.Put_Line ("NOK: " & Exception_Message (E));
+      end if;
+end T3;

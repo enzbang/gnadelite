@@ -19,6 +19,7 @@
 --  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.       --
 ------------------------------------------------------------------------------
 
+with Ada.Unchecked_Conversion;
 with Interfaces.C.Strings;
 with System;
 
@@ -99,10 +100,14 @@ package body DB.SQLite is
       Result    : in int;
       Error_Msg : in Strings.chars_ptr := Strings.Null_Ptr)
    is
+      use System;
       use type sqlite3_h.sqlite_result;
 
       DB_Result : sqlite3_h.sqlite_result;
       for DB_Result'Address use Result'Address;
+
+      function To_Address is
+         new Unchecked_Conversion (Strings.chars_ptr, Address);
 
       function Error_Message return String;
       --  Returns and free Error_Msg content if not null
@@ -121,7 +126,7 @@ package body DB.SQLite is
             Free : declare
                V : constant String := Strings.Value (Error_Msg);
             begin
-               sqlite3_h.sqlite3_free (Error_Msg'Address);
+               sqlite3_h.sqlite3_free (To_Address (Error_Msg));
                return V;
             end Free;
          end if;

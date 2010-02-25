@@ -1,7 +1,7 @@
 ###########################################################################
 #                                  GnadeLite
 #
-#                          Copyright (C) 2006-2008
+#                          Copyright (C) 2006-2010
 #                       Pascal Obry - Olivier Ramonat
 #
 #   This library is free software; you can redistribute it and/or modify
@@ -101,6 +101,12 @@ regtests: bld-tests/regtests
 				printf "nok\n"; \
 				;; \
 		esac)
+	@(cd tests; printf 't3... '; \
+		if test `$(RUNTEST) $(BUILD_DIR)/obj/t3` = "OK"; then \
+			printf "ok\n"; \
+		else \
+			printf "nok\n"; \
+		fi;)
 
 clean:: $(CLN_GPR)
 
