@@ -321,7 +321,7 @@ package body DB.SQLite is
       is
          SQL_Stat  : Strings.chars_ptr := Strings.New_String (SQL);
          Result    : int;
-         Error_Msg : Strings.chars_ptr;
+         Error_Msg : Strings.chars_ptr := Strings.Null_Ptr;
       begin
          Result := sqlite3_h.sqlite3_exec_no_callback
            (DB.H.all'Address, SQL_Stat, System.Null_Address,
