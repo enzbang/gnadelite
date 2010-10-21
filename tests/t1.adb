@@ -34,7 +34,7 @@ procedure T1 is
    use Ada;
    use Ada.Exceptions;
 
-   Max_Insert : constant Positive := 10000;
+   Max_Insert : constant Positive := 100;
    Verbose    : constant Boolean := False;
 
    task type Inserts is
@@ -55,7 +55,7 @@ procedure T1 is
    Null_DBH : constant TLS_DBH :=
                 TLS_DBH'(Handle => null, Connected => False);
 
-   DB_Path : constant String := DB.SQLite.In_Memory_Database;
+   DB_Path : constant String := "temp.db";
 
    package DBH_TLS is
      new Task_Attributes (Attribute => TLS_DBH, Initial_Value => Null_DBH);
@@ -198,6 +198,9 @@ begin
    Create_DB : declare
       DBH : constant TLS_DBH_Access := TLS_DBH_Access (DBH_TLS.Reference);
    begin
+      if Ada.Directories.Exists (DB_Path) then
+         Ada.Directories.Delete_File (DB_Path);
+      end if;
       Connect (DBH);
       DBH.Handle.Execute
         ("create table test ('Counter' boolean, 'tid' integer)");
