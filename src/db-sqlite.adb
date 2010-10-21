@@ -36,11 +36,14 @@ package body DB.SQLite is
    Unique_Handle : sqlite3_h.Handle_Access := null;
    --  Unique handle to use when we want to use in memory connection
 
+   SQLite_Busy : exception;
+   --  Exception raised by SQLite when the database is locked
+
    procedure Check_Result
      (Routine   : in String;
       Result    : in int;
       Error_Msg : in Strings.chars_ptr := Strings.Null_Ptr);
-   --  Check result, raises and exception if it is an error code
+   --  Check result, raises an exception if it is an error code
 
    procedure Step_Internal (Iter : in out Iterator);
    --  Advance to the next row and set Iter.More
@@ -141,7 +144,9 @@ package body DB.SQLite is
          raise DB_Error with "SQlite: Error (Unknown Error) in " & Routine;
       end if;
 
-      if DB_Result /= sqlite3_h.SQLITE_OK then
+      if DB_Result = sqlite3_h.SQLITE_BUSY then
+         raise SQLite_Busy;
+      elsif DB_Result /= sqlite3_h.SQLITE_OK then
          Logs.Write
            (Name    => Module,
             Kind    => Logs.Error,
@@ -296,6 +301,20 @@ package body DB.SQLite is
       Execute (DB, "rollback");
    end Rollback;
 
+   -------------------
+   -- Set_Max_Tries --
+   -------------------
+
+   overriding procedure Set_Max_Tries
+      (DB          : in out Handle;
+       Count       : in     Positive;
+       Retry_Delay :        Duration)
+   is
+   begin
+      DB.Max_Tries   := Count;
+      DB.Retry_Delay := Retry_Delay;
+   end Set_Max_Tries;
+
    -----------------
    -- SQLite_Safe --
    -----------------
@@ -327,16 +346,37 @@ package body DB.SQLite is
          SQL_Stat  : Strings.chars_ptr := Strings.New_String (SQL);
          Result    : int;
          Error_Msg : Strings.chars_ptr := Strings.Null_Ptr;
+
+         Nb_Try : Natural := 0;
       begin
-         Result := sqlite3_h.sqlite3_exec_no_callback
-           (DB.H.all'Address, SQL_Stat, System.Null_Address,
-            System.Null_Address, Error_Msg'Address);
-
-         --  Free
-
+         while Nb_Try < DB.Max_Tries loop
+            begin
+               Error_Msg := Strings.Null_Ptr;
+               Result := sqlite3_h.sqlite3_exec_no_callback
+                  (DB.H.all'Address, SQL_Stat, System.Null_Address,
+                   System.Null_Address, Error_Msg'Address);
+               Check_Result ("Execute", Result, Error_Msg);
+               Strings.Free (SQL_Stat);
+               return;
+            exception
+               when SQLite_Busy =>
+                  Nb_Try := Nb_Try + 1;
+                  pragma Warnings
+                      (Off,
+                      "potentially blocking operation in protected operation");
+                  --  Add a delay inside Exec to avoid having more SQLITE_BUSY
+                  --  errors
+                  delay DB.Retry_Delay;
+                  pragma Warnings
+                      (On,
+                      "potentially blocking operation in protected operation");
+               when DB_Error =>
+                  Strings.Free (SQL_Stat);
+                  raise;
+            end;
+         end loop;
          Strings.Free (SQL_Stat);
-
-         Check_Result ("Execute", Result, Error_Msg);
+         raise DB_Error with ("Max tries exceeded");
       end Exec;
 
       ----------

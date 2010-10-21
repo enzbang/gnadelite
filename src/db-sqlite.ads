@@ -83,11 +83,19 @@ package DB.SQLite is
    overriding function Last_Insert_Rowid (DB : in Handle) return String;
    --  Returns the Id of the last inserted row id
 
+   overriding procedure Set_Max_Tries
+      (DB          : in out Handle;
+       Count       : in     Positive;
+       Retry_Delay :        Duration);
+   --  Number of retry when SQLite returns SQLITE_BUSY error
+
 private
 
    type Handle is new DB.Handle with record
       H         : aliased sqlite3_h.Handle_Access;
       Ref_Count : Natural := 0;
+      Max_Tries : Positive := 5;
+      Retry_Delay : Duration := 0.01;
    end record;
 
    type Iterator is new DB.Iterator with record

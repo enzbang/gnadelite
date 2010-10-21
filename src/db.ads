@@ -83,4 +83,13 @@ package DB is
    function Last_Insert_Rowid (DB : in Handle) return String is abstract;
    --  Returns the Id of the last inserted row id
 
+   procedure Set_Max_Tries
+      (DB          : in out Handle;
+       Count       : in     Positive;
+       Retry_Delay : in     Duration) is abstract;
+   --  Number of tries when executing a SQL statement before giving up
+   --  and raising DB_Error.
+   --  This is useful with SQLite which return SQLITE_BUSY error when there
+   --  is a lock contention.
+
 end DB;
