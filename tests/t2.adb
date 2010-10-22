@@ -22,7 +22,6 @@
 with Ada.Text_IO;
 
 with DB.SQLite;
-with DB.Tools;
 
 with Morzhol.Logs;
 
