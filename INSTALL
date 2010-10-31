@@ -1,7 +1,3 @@
-
-This is a minimal GNADE version with only the Sqlite3 binding plus an
-abstraction to be able to support later other databases.
-
 Dependencies
 ------------
 
